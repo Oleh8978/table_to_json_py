@@ -2,8 +2,18 @@ import mysql.connector
 import json
 from dotenv import load_dotenv
 import os
+from decimal import Decimal
+from datetime import datetime, date
 
 load_dotenv()
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        return super(CustomJSONEncoder, self).default(obj)
 
 def fetch_data_from_db():
     conn = mysql.connector.connect(
@@ -13,7 +23,8 @@ def fetch_data_from_db():
         database=os.getenv('DB_NAME')
     )
     cursor = conn.cursor()
-    query = 'SELECT * FROM ' + os.getenv('DB_NAME') + ';' 
+    
+    query = 'SELECT * FROM ' + os.getenv('TABLE_NAME') + ';' 
     cursor.execute(query)
     rows = cursor.fetchall()
     column_names = [description[0] for description in cursor.description]
@@ -28,7 +39,7 @@ def convert_to_json(rows, column_names, key_column):
         key = row[key_column_index]
         data_dict[key] = {column_names[i]: row[i] for i in range(len(column_names))}
     
-    return json.dumps(data_dict, indent=4)
+    return json.dumps(data_dict, indent=4, cls=CustomJSONEncoder)
 
 def write_json_to_file(json_data, output_file):
     with open(output_file, 'w') as file:
