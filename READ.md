@@ -1,0 +1,1 @@
+# script to get databse table as .json inputs
