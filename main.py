@@ -5,8 +5,10 @@ import os
 from decimal import Decimal
 from datetime import datetime, date
 
+# Load environment variables from .env file
 load_dotenv()
 
+# Custom JSON encoder to handle Decimal and datetime objects
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
@@ -15,6 +17,7 @@ class CustomJSONEncoder(json.JSONEncoder):
             return obj.isoformat()
         return super(CustomJSONEncoder, self).default(obj)
 
+# Function to fetch data from the database
 def fetch_data_from_db():
     conn = mysql.connector.connect(
         host=os.getenv('DB_HOST'),
@@ -24,6 +27,7 @@ def fetch_data_from_db():
     )
     cursor = conn.cursor()
     
+    # Use table name from .env
     query = 'SELECT * FROM ' + os.getenv('TABLE_NAME') + ';' 
     cursor.execute(query)
     rows = cursor.fetchall()
@@ -32,6 +36,7 @@ def fetch_data_from_db():
     
     return rows, column_names
 
+# Function to convert data to JSON format with a specified key column
 def convert_to_json(rows, column_names, key_column):
     key_column_index = column_names.index(key_column)
     data_dict = {}
@@ -39,12 +44,15 @@ def convert_to_json(rows, column_names, key_column):
         key = row[key_column_index]
         data_dict[key] = {column_names[i]: row[i] for i in range(len(column_names))}
     
-    return json.dumps(data_dict, indent=4, cls=CustomJSONEncoder)
+    # Serialize dictionary to JSON with custom encoder and Unicode handling
+    return json.dumps(data_dict, indent=4, ensure_ascii=False, cls=CustomJSONEncoder)
 
+# Function to write JSON data to a file
 def write_json_to_file(json_data, output_file):
-    with open(output_file, 'w') as file:
+    with open(output_file, 'w', encoding='utf-8') as file:
         file.write(json_data)
 
+# Main function
 def main():
     output_file = os.getenv('OUTPUT_FILE_NAME') + '.json'
     key_column = os.getenv('KEY_COLUMN')
